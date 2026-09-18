@@ -23,6 +23,7 @@ button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
 </style>
 </head>
 <body>
+<h1 id="quizTitle" style="text-align:center; margin-bottom: 0.8rem;">考试题目</h1>
 <!--<h1>DMV Quiz Engine</h1>-->
 
 
@@ -71,9 +72,12 @@ button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
   <h3>题库导入 / 导出</h3>
   <textarea id="jsonInput" placeholder="粘贴题库JSON，然后点加载题库"></textarea>
   <br>
-  <button onclick="clearInput()">清空</button>
-  <button onclick="pasteInput()">粘贴</button>
   <button onclick="loadQuiz()">加载题库</button>
+
+  <button onclick="pasteInput()">粘贴</button>
+  
+  <button onclick="clearInput()">清空</button>
+
   <button onclick="exportQuiz()">导出题库</button>
   <button onclick="clearProgress()">清空学习进度</button>
   <div id="jsonMsg"></div>
@@ -179,6 +183,12 @@ function loadQuiz(){
     if(!data.meta || !Array.isArray(data.questions)) throw new Error("JSON结构不对");
     quizData = data;
     currentIndex = 0;
+    
+    // 【新增】读取 meta.title 并显示在页面顶部
+    if(data.meta.title) {
+      document.getElementById("quizTitle").innerText = data.meta.title;
+    }
+
     msg.textContent = "✅ 题库加载成功";
     msg.style.color="green";
     updateQuizProgress();
