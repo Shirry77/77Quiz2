@@ -33,6 +33,9 @@ button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
   <button onclick="showSection('quiz')">顺序刷题</button>
   <button onclick="showSection('exam')">模拟考试</button>
   <button onclick="showSection('mistakes')">错题本</button>
+
+    <button onclick="exportQuiz()">导出题库</button>
+  <button onclick="clearProgress()">清空学习进度</button>
 </div>
 
 <!-- 顺序刷题 -->
@@ -78,8 +81,7 @@ button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
   
   <button onclick="clearInput()">清空</button>
 
-  <button onclick="exportQuiz()">导出题库</button>
-  <button onclick="clearProgress()">清空学习进度</button>
+
   <div id="jsonMsg"></div>
 </div>
 
