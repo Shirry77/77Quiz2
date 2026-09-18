@@ -66,11 +66,13 @@ button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
   <button onclick="clearAllMistakes()">清空全部错题</button>
 </div>
 
-  <!-- 题库管理 -->
+<!-- 题库管理 -->
 <div class="panel">
   <h3>题库导入 / 导出</h3>
   <textarea id="jsonInput" placeholder="粘贴题库JSON，然后点加载题库"></textarea>
   <br>
+  <button onclick="clearInput()">清空</button>
+  <button onclick="pasteInput()">粘贴</button>
   <button onclick="loadQuiz()">加载题库</button>
   <button onclick="exportQuiz()">导出题库</button>
   <button onclick="clearProgress()">清空学习进度</button>
@@ -83,6 +85,26 @@ let currentIndex = 0;
 let examQuestions = [];
 let examAnswers = {};
 let examTimer = null;
+
+// 清空文本框
+function clearInput() {
+  document.getElementById("jsonInput").value = "";
+  document.getElementById("jsonMsg").textContent = "";
+}
+
+// 粘贴剪贴板内容到文本框
+async function pasteInput() {
+  const msg = document.getElementById("jsonMsg");
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById("jsonInput").value = text;
+    msg.textContent = " Clipboard 内容已粘贴";
+    msg.style.color = "green";
+  } catch (err) {
+    msg.textContent = "❌ 粘贴失败（请确保已授予剪贴板权限）";
+    msg.style.color = "red";
+  }
+}
 
 // ===== 学习进度持久化（已完成题目ID集合） =====
 function getFinishedSet(){
