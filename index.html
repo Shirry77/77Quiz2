@@ -1,1 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>77 Quiz</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui, sans-serif;}
+body{max-width:900px;margin:2rem auto;padding:0 1rem;}
+.panel{border:1px solid #ccc;border-radius:8px;padding:1rem;margin-bottom:1rem;}
+textarea{width:100%;min-height:140px;font-family:monospace;}
+button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
+.question-img{max-width:400px;display:block;margin:0.5rem 0;}
+.option{border:1px solid #aaa;padding:0.6rem;margin:0.4rem 0;border-radius:6px;cursor:pointer;}
+.option:hover{background:#f5f5f5;}
+.correct{background:#d9f2d9;border-color:#2b8c2b;}
+.wrong{background:#ffdddd;border-color:#c42b2b;}
+.hidden{display:none;}
+.nav{margin:1rem 0;}
+.progress-bar{background:#eee;height:12px;border-radius:6px;margin:0.5rem 0;overflow:hidden;}
+.progress-fill{background:#4285f4;height:100%;}
+.progress-text{margin-bottom:0.5rem;font-weight:bold;}
+</style>
+</head>
+<body>
+<!--<h1>DMV Quiz Engine</h1>-->
 
+<!-- 题库管理 -->
+<div class="panel">
+  <h3>题库导入 / 导出</h3>
+  <textarea id="jsonInput" placeholder="粘贴题库JSON，然后点加载题库"></textarea>
+  <br>
+  <button onclick="loadQuiz()">加载题库</button>
+  <button onclick="exportQuiz()">导出题库</button>
+  <button onclick="clearProgress()">清空学习进度</button>
+  <div id="jsonMsg"></div>
+</div>
+
+<!-- 导航 -->
+<div class="nav">
+  <button onclick="showSection('quiz')">顺序刷题</button>
+  <button onclick="showSection('exam')">模拟考试</button>
+  <button onclick="showSection('mistakes')">错题本</button>
+</div>
+
+<!-- 顺序刷题 -->
+<div id="quizSection" class="panel hidden">
+  <h3>顺序刷题</h3>
+  <div class="progress-text" id="quizProgress"></div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div id="quizContent"></div>
+  <div>
+    <button onclick="prevQuestion()">上一题</button>
+    <button onclick="nextQuestion()">下一题</button>
+  </div>
+</div>
+
+<!-- 模拟考试 -->
+<div id="examSection" class="panel hidden">
+  <h3>模拟考试</h3>
+  <div>
+    <label><input type="checkbox" id="enableTimer">开启倒计时</label>
+    <span id="timerDisplay"></span>
+  </div>
+  <div id="examContent"></div>
+  <button onclick="submitExam()">交卷</button>
+</div>
+
+<!-- 错题本 -->
+<div id="mistakesSection" class="panel hidden">
+  <h3>错题本</h3>
+  <div id="mistakeContent"></div>
+  <button onclick="clearAllMistakes()">清空全部错题</button>
+</div>
+
+<script>
+let quizData = null;
+let currentIndex = 0;
+let examQuestions = [];
+let examAnswers = {};
+let examTimer = null;
+
+// ===== 学习进度持久化（已完成题目ID集合） =====
+function getFinishedSet(){
+  const raw = localStorage.getItem("quizFinished");
+  return raw ? new Set(JSON.parse(raw)) : new Set();
+}
+function saveFinishedSet(set){
+  localStorage.setItem("quizFinished", JSON.stringify([...set]));
+}
+function markFinished(qid){
+  const s = getFinishedSet();
+  s.add(qid);
+  saveFinishedSet(s);
+}
+function clearProgress(){
+  if(!confirm("确定清空全部已完成学习进度？错题本不会被清空。")) return;
+  localStorage.removeItem("quizFinished");
+  updateQuizProgress();
+}
+function updateQuizProgress(){
+  if(!quizData) return;
+  const total = quizData.questions.length;
+  const finishedSet = getFinishedSet();
+  // 统计当前题库里，属于已完成的题目数量
+  const finishedCount = quizData.questions.filter(q=>finishedSet.has(q.id)).length;
+  const currentNum = currentIndex + 1;
+  const pct = total === 0 ? 0 : (finishedCount / total * 100).toFixed(1);
+
+  document.getElementById("quizProgress").innerText = `当前第${currentNum}题 / 共${total}题 | 已完成：${finishedCount}题`;
+  document.getElementById("progressFill").style.width = `${pct}%`;
+}
+
+// 错题持久化
+function getMistakes(){
+  const raw = localStorage.getItem("quizMistakes");
+  return raw ? JSON.parse(raw) : [];
+}
+function saveMistakes(list){
+  localStorage.setItem("quizMistakes", JSON.stringify(list));
+}
+function addMistake(q){
+  const ms = getMistakes();
+  const exists = ms.find(x=>x.id === q.id);
+  if(!exists) ms.push(q);
+  saveMistakes(ms);
+}
+function removeMistake(qid){
+  const ms = getMistakes().filter(x=>x.id!==qid);
+  saveMistakes(ms);
+}
+
+// 切换面板【修复】：只隐藏quiz/exam/mistakes三个面板，保留题库面板
+function showSection(id){
+  // 隐藏刷题/考试/错题面板
+  document.querySelectorAll("#quizSection,#examSection,#mistakesSection").forEach(p=>{
+    p.classList.add("hidden");
+  });
+  // 显示目标面板
+  document.getElementById(id+"Section").classList.remove("hidden");
+
+  if(id === "quiz") renderQuiz();
+  if(id === "exam") startExam();
+  if(id === "mistakes") renderMistakes();
+}
+
+// 加载题库
+function loadQuiz(){
+  const txt = document.getElementById("jsonInput").value.trim();
+  const msg = document.getElementById("jsonMsg");
+  try{
+    const data = JSON.parse(txt);
+    if(!data.meta || !Array.isArray(data.questions)) throw new Error("JSON结构不对");
+    quizData = data;
+    currentIndex = 0;
+    msg.textContent = "✅ 题库加载成功";
+    msg.style.color="green";
+    updateQuizProgress();
+  }catch(e){
+    msg.textContent = "❌ JSON错误："+e.message;
+    msg.style.color="red";
+  }
+}
+
+function exportQuiz(){
+  if(!quizData) return alert("没有加载题库");
+  const str = JSON.stringify(quizData,null,2);
+  navigator.clipboard.writeText(str);
+  alert("题库JSON已复制到剪贴板");
+}
+
+// 顺序刷题渲染
+function renderQuiz(){
+  if(!quizData) return document.getElementById("quizContent").innerHTML = "请先导入题库";
+  const q = quizData.questions[currentIndex];
+  updateQuizProgress();
+  let html = `<div><strong>${q.category}</strong></div>`;
+  html += `<div>${q.text}</div>`;
+  if(q.image) html += `<img class="question-img" src="${q.image}">`;
+  html += `<div id="quizOptions">`;
+  q.options.forEach(opt=>{
+    html += `<div class="option" onclick="pickQuizOption('${opt.replace(/'/g,"\\'")}')">${opt}</div>`;
+  });
+  html += `</div><div id="quizResult"></div>`;
+  document.getElementById("quizContent").innerHTML = html;
+}
+
+function pickQuizOption(selected){
+  const q = quizData.questions[currentIndex];
+  // 答题完成，标记本题为已完成
+  markFinished(q.id);
+
+  const resDiv = document.getElementById("quizResult");
+  const optEls = document.querySelectorAll("#quizOptions .option");
+  optEls.forEach(el=>{
+    if(el.textContent === q.answer) el.classList.add("correct");
+    if(el.textContent === selected && selected !== q.answer) el.classList.add("wrong");
+  });
+  if(selected !== q.answer){
+    addMistake(q);
+    resDiv.innerHTML = `<p>❌ 答错。正确答案：${q.answer}</p><p>${q.explanation}</p>`;
+  }else{
+    resDiv.innerHTML = `<p>✅ 答对</p><p>${q.explanation}</p>`;
+  }
+  updateQuizProgress();
+}
+
+function prevQuestion(){
+  if(currentIndex>0){currentIndex--;renderQuiz();}
+}
+function nextQuestion(){
+  if(currentIndex < quizData.questions.length-1){currentIndex++;renderQuiz();}
+}
+
+// 模拟考试
+function startExam(){
+  if(!quizData) return document.getElementById("examContent").innerHTML = "请先导入题库";
+  const count = quizData.meta.totalTestQuestions;
+  examQuestions = [...quizData.questions].sort(()=>Math.random()-0.5).slice(0,count);
+  examAnswers = {};
+  if(examTimer) clearInterval(examTimer);
+  document.getElementById("timerDisplay").textContent = "";
+  renderExam();
+}
+
+function renderExam(){
+  let html = "";
+  examQuestions.forEach((q,idx)=>{
+    html += `<div class="panel">
+      <div><strong>${q.category}</strong></div>
+      <div>${q.text}</div>`;
+    if(q.image) html += `<img class="question-img" src="${q.image}">`;
+    html += `<div>`;
+    q.options.forEach(opt=>{
+      const checked = examAnswers[idx] === opt ? "checked" : "";
+      html += `<label><input type="radio" name="e${idx}" value="${opt}" ${checked} onchange="examPick(${idx},'${opt.replace(/'/g,"\\'")}')"> ${opt}</label><br>`;
+    });
+    html += `</div></div>`;
+  });
+  document.getElementById("examContent").innerHTML = html;
+
+  if(document.getElementById("enableTimer").checked){
+    let left = 20 * 60;
+    const disp = document.getElementById("timerDisplay");
+    examTimer = setInterval(()=>{
+      left--;
+      const m = Math.floor(left/60);
+      const s = left%60;
+      disp.textContent = `剩余 ${m}:${String(s).padStart(2,'0')}`;
+      if(left <=0){clearInterval(examTimer);submitExam();}
+    },1000);
+  }
+}
+
+function examPick(idx,opt){
+  examAnswers[idx] = opt;
+}
+
+function submitExam(){
+  if(examTimer) clearInterval(examTimer);
+  let correct = 0;
+  examQuestions.forEach((q,idx)=>{
+    if(examAnswers[idx] === q.answer) {
+      correct++;
+      markFinished(q.id);
+    }else {
+      addMistake(q);
+    }
+  });
+  const total = examQuestions.length;
+  const score = correct / total;
+  const pass = score >= quizData.meta.passScore;
+  let html = `<h3>${pass ? "✅ 通过" : "❌ 未通过"}</h3>`;
+  html += `<p>得分：${correct}/${total} (${(score*100).toFixed(1)}%)，及格线 ${(quizData.meta.passScore*100)}%</p>`;
+  html += `<p>本次错题已加入错题本；答对题目标记为已完成。</p>`;
+  document.getElementById("examContent").innerHTML = html;
+  updateQuizProgress();
+}
+
+// 错题本
+function renderMistakes(){
+  const ms = getMistakes();
+  if(!ms.length) return document.getElementById("mistakeContent").innerHTML = "暂无错题";
+  let html = "";
+  ms.forEach((q,idx)=>{
+    html += `<div class="panel">
+      <div><strong>${q.category}</strong></div>
+      <div>${q.text}</div>`;
+    if(q.image) html += `<img class="question-img" src="${q.image}">`;
+    html += `<div id="mistakeOpt${idx}">`;
+    q.options.forEach(opt=>{
+      html += `<div class="option" onclick="pickMistakeOption(${idx},'${opt.replace(/'/g,"\\'")}')">${opt}</div>`;
+    });
+    html += `</div><div id="mistakeRes${idx}"></div>`;
+    html += `<button onclick="removeMistakeById('${q.id}')">移出错题本</button>
+      </div>`;
+  });
+  document.getElementById("mistakeContent").innerHTML = html;
+}
+
+function pickMistakeOption(idx,selected){
+  const ms = getMistakes();
+  const q = ms[idx];
+  markFinished(q.id); // 错题本作答后同样标记完成
+  const resDiv = document.getElementById("mistakeRes"+idx);
+  const optEls = document.querySelectorAll(`#mistakeOpt${idx} .option`);
+  optEls.forEach(el=>{
+    if(el.textContent === q.answer) el.classList.add("correct");
+    if(el.textContent === selected && selected !== q.answer) el.classList.add("wrong");
+  });
+  if(selected !== q.answer){
+    resDiv.innerHTML = `<p>❌ 答错。正确答案：${q.answer}</p><p>${q.explanation}</p>`;
+  }else{
+    resDiv.innerHTML = `<p>✅ 答对</p><p>${q.explanation}</p>`;
+  }
+  updateQuizProgress();
+}
+
+function removeMistakeById(qid){
+  removeMistake(qid);
+  renderMistakes();
+}
+
+function clearAllMistakes(){
+  if(!confirm("清空所有错题？")) return;
+  saveMistakes([]);
+  renderMistakes();
+}
+
+</script>
+</body>
+</html>
