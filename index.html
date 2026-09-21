@@ -1,55 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>77 Quiz</title>
+<title>77 Quiz Engine</title>
 <style>
-*{box-sizing:border-box;font-family:system-ui, sans-serif;}
-body{max-width:900px;margin:2rem auto;padding:0 1rem;}
-.panel{border:1px solid #ccc;border-radius:8px;padding:1rem;margin-bottom:1rem;}
-textarea{width:100%;min-height:40px;font-family:monospace;}
-button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
-.question-img{max-width:400px;display:block;margin:0.5rem 0;}
-.option{border:1px solid #aaa;padding:0.6rem;margin:0.4rem 0;border-radius:6px;cursor:pointer;}
-.option:hover{background:#f5f5f5;}
-.correct{background:#d9f2d9;border-color:#2b8c2b;}
-.wrong{background:#ffdddd;border-color:#c42b2b;}
+*{box-sizing:border-box;font-family:system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;}
+body{max-width:900px;margin:2rem auto;padding:0 1rem;background:#f8fafc;color:#333;line-height:1.5;}
+.panel{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:1.25rem;margin-bottom:1.25rem;box-shadow:0 2px 4px rgba(0,0,0,0.02);}
+textarea{width:100%;min-height:90px;font-family:monospace;padding:0.75rem;border:1px solid #cbd5e1;border-radius:6px;resize:vertical;}
+button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;border:1px solid #cbd5e1;background:#fff;border-radius:6px;font-weight:500;transition:all 0.2s;}
+button:hover{background:#f1f5f9;border-color:#94a3b8;}
+button.active{background:#2563eb;color:#fff;border-color:#2563eb;}
+.question-img{max-width:350px;width:100%;display:block;margin:0.75rem 0;border-radius:6px;border:1px solid #e2e8f0;}
+.option{border:1px solid #cbd5e1;padding:0.75rem 1rem;margin:0.5rem 0;border-radius:6px;cursor:pointer;transition:background 0.2s, border-color 0.2s;}
+.option:hover{background:#f8fafc;border-color:#94a3b8;}
+.correct{background:#dcfce7 !important;border-color:#16a34a !important;color:#166534;}
+.wrong{background:#fee2e2 !important;border-color:#dc2626 !important;color:#991b1b;}
 .hidden{display:none;}
-.nav{margin:1rem 0;}
-.progress-bar{background:#eee;height:12px;border-radius:6px;margin:0.5rem 0;overflow:hidden;}
-.progress-fill{background:#4285f4;height:100%;}
-.progress-text{margin-bottom:0.5rem;font-weight:bold;}
+.nav{margin:1rem 0;display:flex;flex-wrap:wrap;gap:0.25rem;align-items:center;}
+.lang-group{margin-left:auto;display:flex;gap:0.25rem;background:#f1f5f9;padding:0.25rem;border-radius:8px;}
+.lang-btn{border:none;padding:0.35rem 0.75rem;font-size:0.875rem;border-radius:6px;margin:0;}
+.lang-btn.active{background:#2563eb;color:white;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+.progress-bar{background:#e2e8f0;height:10px;border-radius:5px;margin:0.5rem 0;overflow:hidden;}
+.progress-fill{background:#2563eb;height:100%;width:0%;transition:width 0.3s;}
+.progress-text{margin-bottom:0.5rem;font-weight:600;color:#475569;}
+.en-text{color:#64748b;font-size:0.92em;margin-top:0.2rem;}
+.bilingual-block{margin-bottom:0.2rem;}
+.badge{display:inline-block;padding:0.2rem 0.6rem;background:#eff6ff;color:#1d4ed8;border-radius:4px;font-size:0.85rem;font-weight:600;margin-bottom:0.5rem;}
+.result-box{margin-top:1rem;padding:0.75rem;border-radius:6px;background:#f8fafc;border-left:4px solid #2563eb;}
 </style>
 </head>
 <body>
-<h1 id="quizTitle" style="text-align:center; margin-bottom: 0.8rem;">考试题目</h1>
-<!--<h1>DMV Quiz Engine</h1>-->
 
+<h1 id="quizTitle" style="text-align:center; margin-bottom: 0.8rem; color:#1e293b;">考试题目</h1>
 
-
-<!-- 导航 -->
 <div class="nav">
-
+  <button onclick="showSection('quiz')" class="active" id="navQuiz">顺序刷题</button>
+  <button onclick="showSection('exam')" id="navExam">模拟考试</button>
+  <button onclick="showSection('mistakes')" id="navMistakes">错题本</button>
   <button onclick="clearProgress()">清空学习进度</button>
 
-        <button onclick="exportQuiz()">导出题库</button>
-  
-  <button onclick="showSection('quiz')">顺序刷题</button>
-  <button onclick="showSection('exam')">模拟考试</button>
-  <button onclick="showSection('mistakes')">错题本</button>
-
+  <!-- 语言模式切换按钮组 -->
+  <div class="lang-group">
+    <button class="lang-btn active" id="btnZh" onclick="setLangMode('zh')">中文</button>
+    <button class="lang-btn" id="btnEn" onclick="setLangMode('en')">English</button>
+    <button class="lang-btn" id="btnBi" onclick="setLangMode('bi')">双语 (Bilingual)</button>
+  </div>
 </div>
 
 <!-- 顺序刷题 -->
-<div id="quizSection" class="panel hidden">
+<div id="quizSection" class="panel">
   <h3>顺序刷题</h3>
-  <div class="progress-text" id="quizProgress"></div>
+  <div class="progress-text" id="quizProgress">当前第 0 题 / 共 0 题 | 已完成：0 题</div>
   <div class="progress-bar">
     <div class="progress-fill" id="progressFill"></div>
   </div>
   <div id="quizContent"></div>
-  <div>
+  <div style="margin-top: 1rem;">
     <button onclick="prevQuestion()">上一题</button>
     <button onclick="nextQuestion()">下一题</button>
   </div>
@@ -58,34 +66,32 @@ button{padding:0.5rem 1rem;margin:0.2rem;cursor:pointer;}
 <!-- 模拟考试 -->
 <div id="examSection" class="panel hidden">
   <h3>模拟考试</h3>
-  <div>
-    <label><input type="checkbox" id="enableTimer">开启倒计时</label>
-    <span id="timerDisplay"></span>
+  <div style="margin-bottom: 1rem;">
+    <label><input type="checkbox" id="enableTimer"> 开启倒计时 (20分钟)</label>
+    <span id="timerDisplay" style="margin-left: 1rem; font-weight: bold; color: #dc2626;"></span>
   </div>
   <div id="examContent"></div>
-  <button onclick="submitExam()">交卷</button>
+  <button onclick="submitExam()" style="background:#16a34a; color:#fff; border:none; margin-top:1rem;">提交答卷</button>
 </div>
 
 <!-- 错题本 -->
 <div id="mistakesSection" class="panel hidden">
   <h3>错题本</h3>
   <div id="mistakeContent"></div>
-  <button onclick="clearAllMistakes()">清空全部错题</button>
+  <button onclick="clearAllMistakes()" style="margin-top:1rem; background:#ef4444; color:#fff; border:none;">清空全部错题</button>
 </div>
 
 <!-- 题库管理 -->
 <div class="panel">
   <h3>题库导入 / 导出</h3>
-  <textarea id="jsonInput" placeholder="粘贴题库JSON，然后点加载题库"></textarea>
+  <textarea id="jsonInput" placeholder="粘贴题库 JSON，然后点击“加载题库”..."></textarea>
   <br>
-  <button onclick="loadQuiz()">加载题库</button>
+  <button onclick="loadQuiz()" style="background:#2563eb; color:white; border:none;">加载题库</button>
+  <button onclick="pasteInput()">粘贴剪贴板</button>
+  <button onclick="clearInput()">清空输入</button>
+  <button onclick="exportQuiz()">导出题库 JSON</button>
 
-  <button onclick="pasteInput()">粘贴</button>
-  
-  <button onclick="clearInput()">清空</button>
-
-
-  <div id="jsonMsg"></div>
+  <div id="jsonMsg" style="margin-top:0.5rem; font-weight:500;"></div>
 </div>
 
 <script>
@@ -94,28 +100,62 @@ let currentIndex = 0;
 let examQuestions = [];
 let examAnswers = {};
 let examTimer = null;
+let langMode = localStorage.getItem('quizLangMode') || 'zh'; // 'zh', 'en', 'bi'
+let activeSection = 'quiz';
 
-// 清空文本框
+document.addEventListener('DOMContentLoaded', () => {
+  updateLangButtons();
+});
+
+function setLangMode(mode) {
+  langMode = mode;
+  localStorage.setItem('quizLangMode', mode);
+  updateLangButtons();
+  
+  if (activeSection === 'quiz') renderQuiz();
+  if (activeSection === 'exam') renderExam();
+  if (activeSection === 'mistakes') renderMistakes();
+}
+
+function updateLangButtons() {
+  document.getElementById('btnZh').classList.toggle('active', langMode === 'zh');
+  document.getElementById('btnEn').classList.toggle('active', langMode === 'en');
+  document.getElementById('btnBi').classList.toggle('active', langMode === 'bi');
+}
+
+// 格式化文本（单语/双语显示逻辑）
+function getText(obj, fieldName) {
+  if (!obj) return '';
+  const zh = obj[fieldName] || '';
+  const en = obj[fieldName + '_en'] || '';
+
+  if (langMode === 'zh') return zh || en;
+  if (langMode === 'en') return en || zh;
+  if (langMode === 'bi') {
+    if (zh && en) return `<div class="bilingual-block"><div>${zh}</div><div class="en-text">${en}</div></div>`;
+    return zh || en;
+  }
+  return zh;
+}
+
 function clearInput() {
   document.getElementById("jsonInput").value = "";
   document.getElementById("jsonMsg").textContent = "";
 }
 
-// 粘贴剪贴板内容到文本框
 async function pasteInput() {
   const msg = document.getElementById("jsonMsg");
   try {
     const text = await navigator.clipboard.readText();
     document.getElementById("jsonInput").value = text;
-    msg.textContent = " Clipboard 内容已粘贴";
+    msg.textContent = "✅ 剪贴板内容已粘贴";
     msg.style.color = "green";
   } catch (err) {
-    msg.textContent = "❌ 粘贴失败（请确保已授予剪贴板权限）";
+    msg.textContent = "❌ 粘贴失败（请手动粘贴）";
     msg.style.color = "red";
   }
 }
 
-// ===== 学习进度持久化（已完成题目ID集合） =====
 function getFinishedSet(){
   const raw = localStorage.getItem("quizFinished");
   return raw ? new Set(JSON.parse(raw)) : new Set();
@@ -137,16 +177,14 @@ function updateQuizProgress(){
   if(!quizData) return;
   const total = quizData.questions.length;
   const finishedSet = getFinishedSet();
-  // 统计当前题库里，属于已完成的题目数量
   const finishedCount = quizData.questions.filter(q=>finishedSet.has(q.id)).length;
-  const currentNum = currentIndex + 1;
+  const currentNum = total > 0 ? currentIndex + 1 : 0;
   const pct = total === 0 ? 0 : (finishedCount / total * 100).toFixed(1);
 
-  document.getElementById("quizProgress").innerText = `当前第${currentNum}题 / 共${total}题 | 已完成：${finishedCount}题`;
+  document.getElementById("quizProgress").innerText = `当前第 ${currentNum} 题 / 共 ${total} 题 | 已完成：${finishedCount} 题 (${pct}%)`;
   document.getElementById("progressFill").style.width = `${pct}%`;
 }
 
-// 错题持久化
 function getMistakes(){
   const raw = localStorage.getItem("quizMistakes");
   return raw ? JSON.parse(raw) : [];
@@ -156,108 +194,131 @@ function saveMistakes(list){
 }
 function addMistake(q){
   const ms = getMistakes();
-  const exists = ms.find(x=>x.id === q.id);
-  if(!exists) ms.push(q);
-  saveMistakes(ms);
+  if(!ms.some(x => x.id === q.id)) {
+    ms.push(q);
+    saveMistakes(ms);
+  }
 }
 function removeMistake(qid){
   const ms = getMistakes().filter(x=>x.id!==qid);
   saveMistakes(ms);
 }
 
-// 切换面板【修复】：只隐藏quiz/exam/mistakes三个面板，保留题库面板
 function showSection(id){
-  // 隐藏刷题/考试/错题面板
+  activeSection = id;
   document.querySelectorAll("#quizSection,#examSection,#mistakesSection").forEach(p=>{
     p.classList.add("hidden");
   });
-  // 显示目标面板
+  document.querySelectorAll(".nav > button:not(.lang-btn)").forEach(b => b.classList.remove("active"));
+  
   document.getElementById(id+"Section").classList.remove("hidden");
+  if(id === 'quiz') document.getElementById('navQuiz').classList.add('active');
+  if(id === 'exam') document.getElementById('navExam').classList.add('active');
+  if(id === 'mistakes') document.getElementById('navMistakes').classList.add('active');
 
   if(id === "quiz") renderQuiz();
   if(id === "exam") startExam();
   if(id === "mistakes") renderMistakes();
 }
 
-// 加载题库
 function loadQuiz(){
   const txt = document.getElementById("jsonInput").value.trim();
   const msg = document.getElementById("jsonMsg");
   try{
     const data = JSON.parse(txt);
-    if(!data.meta || !Array.isArray(data.questions)) throw new Error("JSON结构不对");
+    if(!data.meta || !Array.isArray(data.questions)) throw new Error("JSON结构不对，缺少 meta 或 questions 数组");
     quizData = data;
     currentIndex = 0;
     
-    // 【新增】读取 meta.title 并显示在页面顶部
     if(data.meta.title) {
       document.getElementById("quizTitle").innerText = data.meta.title;
     }
 
-    msg.textContent = "✅ 题库加载成功";
+    msg.textContent = "✅ 题库加载成功，共 " + data.questions.length + " 道题目";
     msg.style.color="green";
     updateQuizProgress();
+    renderQuiz();
   }catch(e){
-    msg.textContent = "❌ JSON错误："+e.message;
+    msg.textContent = "❌ JSON解析错误："+e.message;
     msg.style.color="red";
   }
 }
 
 function exportQuiz(){
-  if(!quizData) return alert("没有加载题库");
-  const str = JSON.stringify(quizData,null,2);
+  if(!quizData) return alert("当前没有可导出的题库");
+  const str = JSON.stringify(quizData, null, 2);
   navigator.clipboard.writeText(str);
-  alert("题库JSON已复制到剪贴板");
+  alert("题库 JSON 已成功复制到剪贴板");
 }
 
-// 顺序刷题渲染
 function renderQuiz(){
-  if(!quizData) return document.getElementById("quizContent").innerHTML = "请先导入题库";
+  if(!quizData) return document.getElementById("quizContent").innerHTML = "<p style='color:#64748b;'>请先在下方文本框导入题库 JSON</p>";
   const q = quizData.questions[currentIndex];
   updateQuizProgress();
-  let html = `<div><strong>${q.category}</strong></div>`;
-  html += `<div>${q.text}</div>`;
+
+  let html = `<span class="badge">${getText(q, 'category')}</span>`;
+  html += `<div style="font-size:1.1rem; font-weight:600; margin-bottom:0.8rem;">${getText(q, 'text')}</div>`;
   if(q.image) html += `<img class="question-img" src="${q.image}">`;
+  
   html += `<div id="quizOptions">`;
-  q.options.forEach(opt=>{
-    html += `<div class="option" onclick="pickQuizOption('${opt.replace(/'/g,"\\'")}')">${opt}</div>`;
+  
+  const optionsEn = q.options_en || [];
+  q.options.forEach((optZh, idx) => {
+    const optObj = { option: optZh, option_en: optionsEn[idx] || '' };
+    const optText = getText(optObj, 'option');
+    html += `<div class="option" data-idx="${idx}" onclick="pickQuizOption(${idx})">${optText}</div>`;
   });
+  
   html += `</div><div id="quizResult"></div>`;
   document.getElementById("quizContent").innerHTML = html;
 }
 
-function pickQuizOption(selected){
+function pickQuizOption(selectedIdx){
   const q = quizData.questions[currentIndex];
-  // 答题完成，标记本题为已完成
   markFinished(q.id);
 
   const resDiv = document.getElementById("quizResult");
   const optEls = document.querySelectorAll("#quizOptions .option");
-  optEls.forEach(el=>{
-    if(el.textContent === q.answer) el.classList.add("correct");
-    if(el.textContent === selected && selected !== q.answer) el.classList.add("wrong");
+  
+  const correctIdx = q.options.findIndex(opt => opt === q.answer);
+  const isCorrect = (selectedIdx === correctIdx);
+
+  optEls.forEach((el, idx) => {
+    if (idx === correctIdx) el.classList.add("correct");
+    if (idx === selectedIdx && !isCorrect) el.classList.add("wrong");
   });
-  if(selected !== q.answer){
+
+  const expText = getText(q, 'explanation');
+  
+  if(!isCorrect){
     addMistake(q);
-    resDiv.innerHTML = `<p>❌ 答错。正确答案：${q.answer}</p><p>${q.explanation}</p>`;
+    const answerObj = { option: q.answer, option_en: (q.options_en || [])[correctIdx] || '' };
+    resDiv.innerHTML = `
+      <div class="result-box" style="border-left-color:#dc2626;">
+        <p style="color:#dc2626; font-weight:bold; margin:0 0 0.5rem 0;">❌ 答错。正确答案：${getText(answerObj, 'option')}</p>
+        <div>${expText}</div>
+      </div>`;
   }else{
-    resDiv.innerHTML = `<p>✅ 答对</p><p>${q.explanation}</p>`;
+    resDiv.innerHTML = `
+      <div class="result-box" style="border-left-color:#16a34a;">
+        <p style="color:#16a34a; font-weight:bold; margin:0 0 0.5rem 0;">✅ 答对！</p>
+        <div>${expText}</div>
+      </div>`;
   }
   updateQuizProgress();
 }
 
 function prevQuestion(){
-  if(currentIndex>0){currentIndex--;renderQuiz();}
+  if(currentIndex > 0){ currentIndex--; renderQuiz(); }
 }
 function nextQuestion(){
-  if(currentIndex < quizData.questions.length-1){currentIndex++;renderQuiz();}
+  if(quizData && currentIndex < quizData.questions.length - 1){ currentIndex++; renderQuiz(); }
 }
 
-// 模拟考试
 function startExam(){
-  if(!quizData) return document.getElementById("examContent").innerHTML = "请先导入题库";
-  const count = quizData.meta.totalTestQuestions;
-  examQuestions = [...quizData.questions].sort(()=>Math.random()-0.5).slice(0,count);
+  if(!quizData) return document.getElementById("examContent").innerHTML = "<p style='color:#64748b;'>请先在下方导入题库</p>";
+  const count = quizData.meta.totalTestQuestions || 10;
+  examQuestions = [...quizData.questions].sort(() => Math.random() - 0.5).slice(0, count);
   examAnswers = {};
   if(examTimer) clearInterval(examTimer);
   document.getElementById("timerDisplay").textContent = "";
@@ -266,93 +327,124 @@ function startExam(){
 
 function renderExam(){
   let html = "";
-  examQuestions.forEach((q,idx)=>{
-    html += `<div class="panel">
-      <div><strong>${q.category}</strong></div>
-      <div>${q.text}</div>`;
+  examQuestions.forEach((q, qIdx) => {
+    html += `<div class="panel" style="background:#fafafa;">
+      <span class="badge">${getText(q, 'category')}</span>
+      <div style="font-weight:600; margin-bottom:0.5rem;">${qIdx + 1}. ${getText(q, 'text')}</div>`;
     if(q.image) html += `<img class="question-img" src="${q.image}">`;
+    
     html += `<div>`;
-    q.options.forEach(opt=>{
-      const checked = examAnswers[idx] === opt ? "checked" : "";
-      html += `<label><input type="radio" name="e${idx}" value="${opt}" ${checked} onchange="examPick(${idx},'${opt.replace(/'/g,"\\'")}')"> ${opt}</label><br>`;
+    const optionsEn = q.options_en || [];
+    q.options.forEach((optZh, optIdx) => {
+      const checked = examAnswers[qIdx] === optIdx ? "checked" : "";
+      const optObj = { option: optZh, option_en: optionsEn[optIdx] || '' };
+      html += `<label style="display:block; margin:0.4rem 0; cursor:pointer;">
+        <input type="radio" name="e${qIdx}" value="${optIdx}" ${checked} onchange="examPick(${qIdx}, ${optIdx})"> 
+        <span>${getText(optObj, 'option')}</span>
+      </label>`;
     });
     html += `</div></div>`;
   });
   document.getElementById("examContent").innerHTML = html;
 
-  if(document.getElementById("enableTimer").checked){
+  if(document.getElementById("enableTimer").checked && !examTimer){
     let left = 20 * 60;
     const disp = document.getElementById("timerDisplay");
-    examTimer = setInterval(()=>{
+    examTimer = setInterval(() => {
       left--;
-      const m = Math.floor(left/60);
-      const s = left%60;
-      disp.textContent = `剩余 ${m}:${String(s).padStart(2,'0')}`;
-      if(left <=0){clearInterval(examTimer);submitExam();}
-    },1000);
+      const m = Math.floor(left / 60);
+      const s = left % 60;
+      disp.textContent = `剩余时间 ${m}:${String(s).padStart(2, '0')}`;
+      if(left <= 0){ clearInterval(examTimer); submitExam(); }
+    }, 1000);
   }
 }
 
-function examPick(idx,opt){
-  examAnswers[idx] = opt;
+function examPick(qIdx, optIdx){
+  examAnswers[qIdx] = optIdx;
 }
 
 function submitExam(){
   if(examTimer) clearInterval(examTimer);
   let correct = 0;
-  examQuestions.forEach((q,idx)=>{
-    if(examAnswers[idx] === q.answer) {
+  examQuestions.forEach((q, qIdx) => {
+    const selectedIdx = examAnswers[qIdx];
+    const correctIdx = q.options.findIndex(opt => opt === q.answer);
+    if(selectedIdx === correctIdx) {
       correct++;
       markFinished(q.id);
-    }else {
+    } else {
       addMistake(q);
     }
   });
   const total = examQuestions.length;
   const score = correct / total;
-  const pass = score >= quizData.meta.passScore;
-  let html = `<h3>${pass ? "✅ 通过" : "❌ 未通过"}</h3>`;
-  html += `<p>得分：${correct}/${total} (${(score*100).toFixed(1)}%)，及格线 ${(quizData.meta.passScore*100)}%</p>`;
-  html += `<p>本次错题已加入错题本；答对题目标记为已完成。</p>`;
+  const passScore = quizData.meta.passScore || 0.8;
+  const pass = score >= passScore;
+  
+  let html = `<div class="result-box" style="border-left-color:${pass ? '#16a34a' : '#dc2626'}">
+    <h3>${pass ? "🎉 恭喜通过！" : "❌ 未通过，请再接再厉"}</h3>
+    <p>正确题数：<strong>${correct} / ${total}</strong> (${(score*100).toFixed(1)}%)，及格线为 ${(passScore*100)}%</p>
+    <p style="color:#64748b;">本次考试错题已加入错题本，答对题目标记为已完成。</p>
+  </div>`;
   document.getElementById("examContent").innerHTML = html;
   updateQuizProgress();
 }
 
-// 错题本
 function renderMistakes(){
   const ms = getMistakes();
-  if(!ms.length) return document.getElementById("mistakeContent").innerHTML = "暂无错题";
+  if(!ms.length) return document.getElementById("mistakeContent").innerHTML = "<p style='color:#64748b;'>暂无错题记录</p>";
+  
   let html = "";
-  ms.forEach((q,idx)=>{
+  ms.forEach((q, idx) => {
     html += `<div class="panel">
-      <div><strong>${q.category}</strong></div>
-      <div>${q.text}</div>`;
+      <span class="badge">${getText(q, 'category')}</span>
+      <div style="font-weight:600; margin-bottom:0.5rem;">${getText(q, 'text')}</div>`;
     if(q.image) html += `<img class="question-img" src="${q.image}">`;
+    
     html += `<div id="mistakeOpt${idx}">`;
-    q.options.forEach(opt=>{
-      html += `<div class="option" onclick="pickMistakeOption(${idx},'${opt.replace(/'/g,"\\'")}')">${opt}</div>`;
+    const optionsEn = q.options_en || [];
+    q.options.forEach((optZh, optIdx) => {
+      const optObj = { option: optZh, option_en: optionsEn[optIdx] || '' };
+      html += `<div class="option" onclick="pickMistakeOption(${idx}, ${optIdx})">${getText(optObj, 'option')}</div>`;
     });
     html += `</div><div id="mistakeRes${idx}"></div>`;
-    html += `<button onclick="removeMistakeById('${q.id}')">移出错题本</button>
-      </div>`;
+    html += `<button onclick="removeMistakeById('${q.id}')" style="margin-top:0.5rem; color:#dc2626;">移出错题本</button>
+    </div>`;
   });
   document.getElementById("mistakeContent").innerHTML = html;
 }
 
-function pickMistakeOption(idx,selected){
+function pickMistakeOption(mIdx, selectedIdx){
   const ms = getMistakes();
-  const q = ms[idx];
-  markFinished(q.id); // 错题本作答后同样标记完成
-  const resDiv = document.getElementById("mistakeRes"+idx);
-  const optEls = document.querySelectorAll(`#mistakeOpt${idx} .option`);
-  optEls.forEach(el=>{
-    if(el.textContent === q.answer) el.classList.add("correct");
-    if(el.textContent === selected && selected !== q.answer) el.classList.add("wrong");
+  const q = ms[mIdx];
+  markFinished(q.id);
+
+  const resDiv = document.getElementById("mistakeRes" + mIdx);
+  const optEls = document.querySelectorAll(`#mistakeOpt${mIdx} .option`);
+  const correctIdx = q.options.findIndex(opt => opt === q.answer);
+  const isCorrect = (selectedIdx === correctIdx);
+
+  optEls.forEach((el, idx) => {
+    if(idx === correctIdx) el.classList.add("correct");
+    if(idx === selectedIdx && !isCorrect) el.classList.add("wrong");
   });
-  if(selected !== q.answer){
-    resDiv.innerHTML = `<p>❌ 答错。正确答案：${q.answer}</p><p>${q.explanation}</p>`;
+
+  const expText = getText(q, 'explanation');
+
+  if(!isCorrect){
+    const answerObj = { option: q.answer, option_en: (q.options_en || [])[correctIdx] || '' };
+    resDiv.innerHTML = `
+      <div class="result-box" style="border-left-color:#dc2626;">
+        <p style="color:#dc2626; font-weight:bold; margin:0 0 0.5rem 0;">❌ 答错。正确答案：${getText(answerObj, 'option')}</p>
+        <div>${expText}</div>
+      </div>`;
   }else{
-    resDiv.innerHTML = `<p>✅ 答对</p><p>${q.explanation}</p>`;
+    resDiv.innerHTML = `
+      <div class="result-box" style="border-left-color:#16a34a;">
+        <p style="color:#16a34a; font-weight:bold; margin:0 0 0.5rem 0;">✅ 答对！</p>
+        <div>${expText}</div>
+      </div>`;
   }
   updateQuizProgress();
 }
@@ -363,11 +455,10 @@ function removeMistakeById(qid){
 }
 
 function clearAllMistakes(){
-  if(!confirm("清空所有错题？")) return;
+  if(!confirm("确定清空所有错题记录？")) return;
   saveMistakes([]);
   renderMistakes();
 }
-
 </script>
 </body>
 </html>
